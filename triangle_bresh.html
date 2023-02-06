@@ -4,12 +4,16 @@
 <title>Triangle Rasterization</title>
 <script>
 "use strict";
+
+let Y_MAX = undefined;
+let Y_MIN = undefined;
+let X_RANGE_AT_Y = {};
+
 function rasterize_line( va, vb, emit_fragment ) {
 	//TODO: fill in this function
 
 	//This is a very bad placeholder implementation, just here so you see something by default.
 	//Don't actually do this.
-
 
 	function plotLineLow(x_0, y_0, x_1, y_1, emit_fragment){
 		let dx = x_1 - x_0
@@ -24,6 +28,24 @@ function rasterize_line( va, vb, emit_fragment ) {
 		for(let i=x_0;i<=x_1;i++){
 			if (!(`${i}.${y}` in FRAGMENTS)){
 				emit_fragment(i+0.5,y+0.5)
+				if (!(y in X_RANGE_AT_Y)){
+					X_RANGE_AT_Y[y] = []
+					X_RANGE_AT_Y[y].push(i)
+				}else{
+					if(X_RANGE_AT_Y[y].length==1){
+						if(i > X_RANGE_AT_Y[y][0]){
+							X_RANGE_AT_Y[y].push(i)
+						}else if(i < X_RANGE_AT_Y[y][0]){
+							X_RANGE_AT_Y[y].unshift(i)
+						}
+					}else{
+						if (X_RANGE_AT_Y[y][0] > i){
+							X_RANGE_AT_Y[y][0] = i
+						} else if (X_RANGE_AT_Y[y][1] < i){
+							X_RANGE_AT_Y[y][1] = i
+						}
+					}
+				}
 			}
 			if (D>0){
 				y = y + yi
@@ -48,6 +70,24 @@ function rasterize_line( va, vb, emit_fragment ) {
 		for (let i=y_0;i<=y_1;i++){
 			if (!(`${x}.${i}` in FRAGMENTS)){
 				emit_fragment(x+0.5, i+0.5)
+				if (!(i in X_RANGE_AT_Y)){
+					X_RANGE_AT_Y[i] = []
+					X_RANGE_AT_Y[i].push(x)
+				}else{
+					if(X_RANGE_AT_Y[i].length==1){
+						if(x > X_RANGE_AT_Y[i][0]){
+							X_RANGE_AT_Y[i].push(x)
+						}else if (x < X_RANGE_AT_Y[i][0]){
+							X_RANGE_AT_Y[i].unshift(x)
+						}
+					}else{
+						if (X_RANGE_AT_Y[i][0] > x){
+							X_RANGE_AT_Y[i][0] = x
+						} else if (X_RANGE_AT_Y[i][1] < x){
+							X_RANGE_AT_Y[i][1] = x
+						}
+					}
+				}
 			}
 			if (D>0){
 				x = x+xi
@@ -99,6 +139,28 @@ function rasterize_triangle( va, vb, vc, emit_fragment ) {
 	rasterize_line(va,vb,emit_fragment)
 	rasterize_line(vb,vc,emit_fragment)
 	rasterize_line(vc,va,emit_fragment)
+	Y_MAX = undefined;
+	Y_MIN = undefined;
+	for (let vertex of VERTICES) {
+		if(Y_MAX === undefined){
+			Y_MAX = vertex.y
+		}
+		if(Y_MIN === undefined){
+			Y_MIN = vertex.y
+		}
+		if(vertex.y > Y_MAX){
+			Y_MAX = vertex.y
+		}
+		if(vertex.y < Y_MIN){
+			Y_MIN = vertex.y
+		}
+	} 
+	Y_MIN = Math.floor(Y_MIN)
+	Y_MAX = Math.floor(Y_MAX)
+	console.log(Y_MAX)
+	console.log(Y_MIN)
+	console.log(X_RANGE_AT_Y)
+
 	//This is a very bad placeholder implementation, just here so you see something by default.
 	//Don't actually do this!
 	//A good solution will loop over exactly the pixels that the triangle covers.
@@ -301,6 +363,7 @@ function rasterize() {
 
 	//clear fragments:
 	FRAGMENTS = {};
+	X_RANGE_AT_Y = {};
 
 	function emit_fragment(x,y) {
 		if (Math.floor(x) + 0.5 != x || Math.floor(y) + 0.5 != y) {
@@ -322,6 +385,18 @@ function rasterize() {
 		const vc = {x: VERTICES[triangle[2]].x, y: VERTICES[triangle[2]].y};
 
 		rasterize_triangle(va, vb, vc, emit_fragment);
+	}
+	for (let i = Y_MIN; i<= Y_MAX; i++){
+		console.log(i)
+		const v0 ={
+			x:X_RANGE_AT_Y[i][0],
+			y:i
+		};
+		const v1 ={
+			x:X_RANGE_AT_Y[i][1],
+			y:i
+		};
+		rasterize_line(v0,v1,emit_fragment)
 	}
 }
 
